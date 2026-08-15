@@ -16,17 +16,16 @@ def write_failure_marker(path, metadata):
         json.dump(metadata, f, indent=4)
 
 def process_file(args):
-    (
-        input_path,
-        output_path,
-        result_json,
-        failure_json,
-        log_path,
-        c_budget,
-        detector,
-        timeout,
-        keep_success_logs,
-    ) = args
+    input_path = args[0]
+    output_path = args[1]
+    result_json = args[2]
+    failure_json = args[3]
+    log_path = args[4]
+    c_budget = args[5]
+    max_length = args[6]
+    detector = args[7]
+    timeout = args[8]
+    keep_success_logs = args[9]
     cmd = [
         "python3", "pipeline/run_malguise.py",
         "--input", input_path,
