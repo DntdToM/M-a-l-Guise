@@ -1,0 +1,58 @@
+# Runtime outputs
+results/**
+!results/.gitkeep
+!results/_logs/
+!results/_logs/.gitkeep
+
+# Malware datasets and split datasets
+data/**
+!data/.gitkeep
+!data/Test/
+!data/Test/.gitkeep
+!data/Test_part_1/
+!data/Test_part_1/.gitkeep
+!data/Test_part_2/
+!data/Test_part_2/.gitkeep
+
+# Python/runtime caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# Local virtual environments
+det_venv/
+venv/
+.venv/
+detector/det_venv/
+detector/**
+!detector/
+!detector/.gitkeep
+detector/MAGIC/.git_backup_nested/
+detector/MAGIC/“Angr
+
+# Large detector datasets/caches generated from samples
+detector/MSACFG/Adv_agent/
+detector/MSACFG/Adv_detector/
+detector/MSACFG/Test/
+detector/MSACFG/TestSet/
+detector/MSACFG/TrainSet/
+detector/MSACFG/__pycache__/
+detector/MAGIC/DataSamples/
+detector/MAGIC/maldefender/cached_*.pkl
+detector/MAGIC/maldefender/*_test.pkl
+detector/MAGIC/maldefender/__pycache__/
+
+# Generated local samples/artifacts
+original.exe
+out.exe
+transformed.exe
+transformed.asm
+detector/test_angr.asm
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak

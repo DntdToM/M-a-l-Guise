@@ -1,0 +1,10 @@
+# MalGuise Detector (det_venv) Dependencies
+# Install with: pip install -r requirements_det.txt
+angr>=9.2
+lief>=0.16
+capstone>=5.0
+scipy>=1.10
+pandas>=2.0
+networkx>=3.0
+torch>=2.0
+glog>=0.3
