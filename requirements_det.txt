@@ -8,3 +8,4 @@ pandas>=2.0
 networkx>=3.0
 torch>=2.0
 glog>=0.3
+matplotlib>=3.3.0
