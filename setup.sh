@@ -38,7 +38,27 @@ fi
 "$DET_VENV_DIR/bin/pip" install -r requirements_det.txt
 
 echo ""
-echo "[3/3] Verifying setup..."
+echo "[3/4] Patching MAGIC parser to support angr/Capstone mnemonics..."
+PATCH_FILE="detector/MAGIC/maldefender/instructions_data.py"
+if [ -f "$PATCH_FILE" ]; then
+    # Add Capstone branches
+    sed -i "s/'ja', 'jb'/'ja', 'jae', 'jb'/g" "$PATCH_FILE"
+    sed -i "s/'jnz',/'jnz', 'jne',/g" "$PATCH_FILE"
+    sed -i "s/'jz',/'jz', 'je',/g" "$PATCH_FILE"
+    
+    # Add Capstone return
+    sed -i "s/'retf'/'ret', 'retf'/g" "$PATCH_FILE"
+    
+    # Add Capstone cmov/set
+    sed -i "s/'cmovz',/'cmovz', 'cmove', 'cmovne',/g" "$PATCH_FILE"
+    sed -i "s/'setz',/'setz', 'sete', 'setne',/g" "$PATCH_FILE"
+    echo "  MAGIC parser patched successfully."
+else
+    echo "  Warning: $PATCH_FILE not found. Skipping patch."
+fi
+
+echo ""
+echo "[4/4] Verifying setup..."
 
 # Quick sanity check
 python3 -c "import angr; import lief; print('  System Python: angr + lief OK')"
