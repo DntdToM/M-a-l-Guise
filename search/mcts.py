@@ -8,12 +8,13 @@ from search.transition import transition
 logger = logging.getLogger(__name__)
 
 class MCTS:
-    def __init__(self, cfg_nop, detector, c_budget=40, max_length=6, ucb_c=math.sqrt(2), time_budget=None):
+    def __init__(self, cfg_nop, detector, c_budget=40, max_length=6, ucb_c=math.sqrt(2), threshold=0.5, time_budget=None):
         self.cfg_nop = cfg_nop
         self.detector = detector
         self.c_budget = c_budget
         self.max_length = max_length
         self.ucb_c = ucb_c
+        self.threshold = threshold
         self.time_budget = time_budget
         self.baseline_prob = 1.0
         self.best_prob = None
@@ -59,14 +60,14 @@ class MCTS:
         if time_exceeded():
             logger.warning("Time budget exhausted after baseline evaluation; no transformed candidate generated.")
             return finish("time_budget_no_candidate", best_state, None)
-        
+
         # We process depth step-by-step
         for i in range(1, self.max_length + 1):
             if time_exceeded():
                 logger.info(f"Time budget reached before depth={i}. Returning best candidate.")
                 return finish("time_budget", best_state, None if best_state is None else best_prob)
 
-            logger.info(f"MCTS Depth {i}/{self.max_length}")
+            logger.info(f"MCTS Depth {i}/{self.max_length} started.")
             
             for j in range(1, self.c_budget + 1):
                 if time_exceeded():
@@ -75,7 +76,6 @@ class MCTS:
                         "Returning best candidate."
                     )
                     return finish("time_budget", best_state, None if best_state is None else best_prob)
-
                 # Selection vs Expansion (limit unbounded branching)
                 if v.children and random.random() < 0.5:
                     v_selected = self.selection(v)
@@ -93,25 +93,26 @@ class MCTS:
                 if best_state is None or malware_prob < best_prob:
                     best_prob = malware_prob
                     best_state = v_selected.state
-                    logger.info(
-                        f"New best candidate: prob={best_prob:.4f}, "
-                        f"sequence_len={len(best_state.transformation_sequence)}"
-                    )
-
-                if not getattr(result, 'is_malware', True):
-                    logger.info(
-                        f"Early stop: evasive candidate found at depth={i}, "
-                        f"iteration={j}, prob={malware_prob:.4f}, "
-                        f"sequence_len={len(v_selected.state.transformation_sequence)}"
-                    )
-                    return finish("evaded", v_selected.state, malware_prob)
+                    logger.info(f"New best candidate at Depth {i}, Iteration {j}: prob={best_prob:.4f}")
                 
-            # Select child with highest average reward for the next depth
+            # After C budget iterations at this depth, select child with highest average reward
             if not v.children:
-                logger.warning("No children generated during expansion. Stopping search.")
+                logger.warning(f"No children generated at depth {i}. Stopping search.")
                 break
                 
             v_node = max(v.children, key=lambda c: c.total_value / c.visits if c.visits > 0 else 0)
+            
+            # Predict the selected best child's state
+            v_node_result = self.detector.predict(v_node.state.pe_bytes)
+            v_node_prob = getattr(v_node_result, 'malware_prob', 1.0)
+            
+            logger.info(f"Depth {i} finished. Best child selected with prob={v_node_prob:.4f}")
+            
+            if v_node_prob < self.threshold:
+                logger.info(f"Success! Evasive candidate found at depth {i} with prob={v_node_prob:.4f} < threshold={self.threshold}")
+                return finish("evaded", v_node.state, v_node_prob)
+                
+            # If not evaded, proceed to next depth
             v = v_node
             v.parent = None # Cut the tree and move down
             
@@ -119,7 +120,7 @@ class MCTS:
             logger.info("MCTS budget exhausted without a transformed candidate.")
             return finish("budget_exhausted_no_candidate", best_state, None)
 
-        logger.info(f"MCTS budget exhausted. Returning best candidate with prob={best_prob:.4f}.")
+        logger.info(f"MCTS budget exhausted (reached max_length {self.max_length}). Returning best candidate found overall with prob={best_prob:.4f}.")
         return finish("budget_exhausted", best_state, best_prob)
 
     def selection(self, node):

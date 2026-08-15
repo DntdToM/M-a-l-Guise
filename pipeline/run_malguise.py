@@ -57,6 +57,8 @@ def main():
     parser.add_argument("--magic-dir", type=str, default="detector/MAGIC", help="Path to MAGIC detector directory (used if --detector magic)")
     parser.add_argument("--time-budget", type=float, default=None, help="Soft search time budget in seconds. Returns the best evaluated candidate when reached.")
     args = parser.parse_args()
+    
+    args.threshold = 0.5 # Hardcoded threshold as requested
 
     if not os.path.exists(args.input):
         logger.error(f"Input file {args.input} does not exist.")
@@ -90,7 +92,7 @@ def main():
     # 3. Run MCTS Search
     logger.info(f"Starting MCTS Search (Initial configuration: C={args.c_budget}, N={args.max_length})...")
     agent = MalGuiseAgent(
-        cfg_nop_action=cfg_nop_action,
+        cfg_nop=cfg_nop_action,
         detector=detector,
         c_budget=args.c_budget,
         max_length=args.max_length,
@@ -109,16 +111,16 @@ def main():
     else:
         result = detector.predict(adv_bytes)
         
-    is_malware = getattr(result, 'is_malware', False)
-    malware_prob = getattr(result, 'malware_prob', 0.0)
+    malware_prob = getattr(result, 'malware_prob', 1.0)
+    is_malware = malware_prob >= args.threshold
     
     if is_malware:
         logger.warning(
             f"[BEST-EFFORT] Best sequence length {len(best_sequence)} did not evade "
-            f"the detector, but reduced/achieved prob={malware_prob:.4f}. Saving candidate."
+            f"the detector (prob={malware_prob:.4f} >= {args.threshold}). Saving candidate."
         )
     else:
-        logger.info(f"[SUCCESS] Found evasive sequence of length {len(best_sequence)} with final prob {malware_prob:.4f}.")
+        logger.info(f"[SUCCESS] Found evasive sequence of length {len(best_sequence)} with final prob {malware_prob:.4f} < {args.threshold}.")
     
     # 4. Save Adversarial Malware and CFG Artifact
     logger.info("Reconstructing adversarial malware and saving artifacts...")
@@ -161,12 +163,12 @@ def main():
             "baseline_probability": getattr(agent.mcts, 'baseline_prob', 1.0),
             "final_probability": malware_prob,
             "probability_reduction": getattr(agent.mcts, 'baseline_prob', 1.0) - malware_prob,
-            "is_malware": is_malware,
-            "success": not is_malware,
-            "status": "evaded" if not is_malware else "best_effort_not_evaded",
-            "search_info": search_info,
             "best_sequence": [action.name for action in best_sequence],
-            "num_transformations": len(best_sequence)
+            "num_transformations": len(best_sequence),
+            "seed": 0, # Placeholder for reproducible randomness if implemented
+            "C": args.c_budget,
+            "N": args.max_length,
+            "success": not is_malware
         }
         
         result_json_path = output_path.with_name(f"{output_path.stem}_result.json")

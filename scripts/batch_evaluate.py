@@ -23,7 +23,6 @@ def process_file(args):
         failure_json,
         log_path,
         c_budget,
-        max_length,
         detector,
         timeout,
         keep_success_logs,

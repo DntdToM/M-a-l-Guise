@@ -1,25 +1,39 @@
 from search.mcts import MCTS
 from search.state import SearchState, EnvStateSnapshot
+from detector.interface import DetectorInterface
+from actions.cfg_nop_actions import CfgNopActions
 import logging
 
 logger = logging.getLogger(__name__)
 
 class MalGuiseAgent:
-    def __init__(self, cfg_nop_action, detector, c_budget=40, max_length=6, time_budget=None):
-        self.cfg_nop_action = cfg_nop_action
+    def __init__(
+        self,
+        cfg_nop: CfgNopActions,
+        detector: DetectorInterface,
+        c_budget: int = 40,
+        max_length: int = 6,
+        time_budget: float = None,
+    ):
+        self.cfg_nop = cfg_nop
+        self.detector = detector
+        self.c_budget = c_budget
+        self.max_length = max_length
+        self.threshold = 0.5
         self.mcts = MCTS(
-            cfg_nop_action,
-            detector,
-            c_budget=c_budget,
-            max_length=max_length,
-            time_budget=time_budget,
+            cfg_nop=self.cfg_nop,
+            detector=self.detector,
+            c_budget=self.c_budget,
+            max_length=self.max_length,
+            threshold=self.threshold,
+            time_budget=time_budget
         )
 
     def generate_adversarial(self, initial_pe_bytes: bytes):
         logger.info("Initializing search state from initial PE...")
         
         # Take a snapshot of the initial environment state
-        initial_snapshot = EnvStateSnapshot(self.cfg_nop_action)
+        initial_snapshot = EnvStateSnapshot(self.cfg_nop)
         
         root_state = SearchState(
             transformation_sequence=[],
