@@ -58,7 +58,23 @@ else
 fi
 
 echo ""
-echo "[4/4] Verifying setup..."
+echo "[4/5] Patching prepare_data.py to use dynamic python path instead of hardcoded /usr/bin/python3..."
+PREPARE_DATA_FILE="detector/MSACFG/prepare_data.py"
+if [ -f "$PREPARE_DATA_FILE" ]; then
+    # Replace /usr/bin/python3 with sys.executable
+    sed -i "s|'/usr/bin/python3'|import sys; sys.executable|g" "$PREPARE_DATA_FILE"
+    sed -i "s|import sys; sys.executable, ANGR_HELPER_PATH|sys.executable, ANGR_HELPER_PATH|g" "$PREPARE_DATA_FILE"
+    # To be safe, just inject import sys before if it's not there, but wait, sys is already imported in prepare_data.py (line 15 has import subprocess, import sys is missing? No, line 15: import subprocess. Let's just use sys.executable assuming sys is imported, actually let's just do sed -i 's|\[\"/usr/bin/python3\"|[sys.executable|g' and add import sys if needed.
+    # Actually, a simpler sed:
+    sed -i "s|\['/usr/bin/python3'|[sys.executable|g" "$PREPARE_DATA_FILE"
+    sed -i "/import os/a import sys" "$PREPARE_DATA_FILE"
+    echo "  prepare_data.py patched successfully."
+else
+    echo "  Warning: $PREPARE_DATA_FILE not found. Skipping patch."
+fi
+
+echo ""
+echo "[5/5] Verifying setup..."
 
 # Quick sanity check
 python3 -c "import angr; import lief; print('  System Python: angr + lief OK')"
