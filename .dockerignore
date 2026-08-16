@@ -1,0 +1,8 @@
+.git/
+.venv/
+det_venv/
+results/
+__pycache__/
+*.pyc
+.idea/
+.vscode/
